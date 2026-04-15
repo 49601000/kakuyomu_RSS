@@ -1,0 +1,8 @@
+name: kakuyomu-rss
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - requests>=2.31,<3.0
