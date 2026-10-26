@@ -16,7 +16,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Read RSS config
+        id: config
+        shell: bash
+        run: |
+          if [[ ! -f rss-config.json ]]; then
+            echo "::error::rss-config.json が見つかりません。"
+            exit 1
+          fi
+          if ! enabled="$(jq -r '
+            if (.feeds | type) != "object" then error("feeds が存在しないかobjectではありません")
+            elif (.feeds.modern_terms | type) != "object" then error("feeds.modern_terms が存在しないかobjectではありません")
+            elif (.feeds.modern_terms.enabled | type) != "boolean" then error("feeds.modern_terms.enabled が存在しないかbooleanではありません")
+            else .feeds.modern_terms.enabled
+            end
+          ' rss-config.json)"; then
+            echo "::error::rss-config.json の modern_terms 設定が不正です。"
+            exit 1
+          fi
+          echo "enabled=$enabled" >> "$GITHUB_OUTPUT"
+          if [[ "$enabled" == "false" ]]; then
+            echo "::notice::feeds.modern_terms.enabled=false のため新作RSS更新をスキップします。既存の feed-modern-terms.xml は保持されます。"
+          fi
+
       - name: Read work ID
+        if: steps.config.outputs.enabled == 'true'
         id: work
         shell: bash
         run: |
@@ -30,23 +54,23 @@ jobs:
           echo "skip=false" >> "$GITHUB_OUTPUT"
 
       - name: Set up Python
-        if: steps.work.outputs.skip != 'true'
+        if: steps.config.outputs.enabled == 'true' && steps.work.outputs.skip != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
       - name: Install dependencies
-        if: steps.work.outputs.skip != 'true'
+        if: steps.config.outputs.enabled == 'true' && steps.work.outputs.skip != 'true'
         run: |
           pip install requests
 
       - name: Generate RSS
-        if: steps.work.outputs.skip != 'true'
+        if: steps.config.outputs.enabled == 'true' && steps.work.outputs.skip != 'true'
         run: |
           python kakuyomu_rss.py "${{ steps.work.outputs.work_id }}" -o feed-modern-terms.xml --skip-empty
 
       - name: Commit and Push
-        if: steps.work.outputs.skip != 'true'
+        if: steps.config.outputs.enabled == 'true' && steps.work.outputs.skip != 'true'
         run: |
           if [[ ! -f feed-modern-terms.xml ]]; then
             echo "::notice::公開話が0件のため、既存のRSSは変更しません。"
