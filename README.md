@@ -19,6 +19,30 @@
 
 作品IDは、カクヨム作品URL `https://kakuyomu.jp/works/<作品ID>` の数字部分です。各設定ファイルには作品IDだけを1行で記載してください。新作の作品IDは未設定なので、公開後に `myid-modern-terms.md` へ登録します。
 
+## 作品別に自動更新をON/OFFする
+
+リポジトリ直下の `rss-config.json` で2作品を独立して制御します。
+
+```json
+{
+  "feeds": {
+    "existing": {
+      "enabled": true
+    },
+    "modern_terms": {
+      "enabled": true
+    }
+  }
+}
+```
+
+- `feeds.existing.enabled`: 既存作品の `feed.xml`
+- `feeds.modern_terms.enabled`: 新作の `feed-modern-terms.xml`
+- `true`: 定期実行・手動実行のどちらでも従来どおり更新
+- `false`: 取得・生成・コミットをスキップして正常終了
+
+OFFにしても公開済みのRSSファイルは削除されず、前回生成内容へ引き続きアクセスできます。設定ファイルの欠落、JSON構文エラー、対象設定の欠落、または `enabled` がboolean以外の場合は、Workflowが理由をエラーログへ出して失敗終了します。
+
 既存RSSは次のRaw URLから取得できます。
 
 - `https://raw.githubusercontent.com/49601000/kakuyomu_RSS/main/feed.xml`
@@ -108,6 +132,7 @@ python kakuyomu_rss.py 16818622175853938235 -o feed.xml --skip-empty
 ## ファイル構成
 
 - `kakuyomu_rss.py`: 2作品で共用するRSS生成スクリプト
+- `rss-config.json`: 作品別のRSS更新ON/OFF設定
 - `myid.md`: 既存作品の作品ID
 - `myid-modern-terms.md`: 新作の作品ID（現在は未設定）
 - `feed.xml`: 既存作品のRSS
