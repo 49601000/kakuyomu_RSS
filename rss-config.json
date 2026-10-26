@@ -1,0 +1,10 @@
+{
+  "feeds": {
+    "existing": {
+      "enabled": true
+    },
+    "modern_terms": {
+      "enabled": true
+    }
+  }
+}
