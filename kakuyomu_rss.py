@@ -38,6 +38,11 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="Limit number of latest episodes in feed (0 = all)",
     )
+    parser.add_argument(
+        "--skip-empty",
+        action="store_true",
+        help="Exit successfully without writing output when the work has no public episodes",
+    )
     return parser.parse_args()
 
 
@@ -195,6 +200,12 @@ def main() -> int:
         work_obj = resolve_work(state, work_id)
         episodes = collect_episodes(state, work_obj)
         if not episodes:
+            if args.skip_empty:
+                print(
+                    "公開話が0件のためRSS生成をスキップしました。既存の出力は変更しません。",
+                    file=sys.stderr,
+                )
+                return 0
             raise KakuyomuRSSError("公開話データが見つかりませんでした。")
         xml = build_rss_xml(state, work_id, work_obj, episodes, args.limit)
     except requests.RequestException as exc:
