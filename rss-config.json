@@ -4,7 +4,7 @@
       "enabled": true
     },
     "modern_terms": {
-      "enabled": true
+      "enabled": false
     }
   }
 }
