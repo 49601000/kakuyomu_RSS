@@ -16,20 +16,47 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Read RSS config
+        id: config
+        shell: bash
+        run: |
+          if [[ ! -f rss-config.json ]]; then
+            echo "::error::rss-config.json が見つかりません。"
+            exit 1
+          fi
+          if ! enabled="$(jq -r '
+            if (.feeds | type) != "object" then error("feeds が存在しないかobjectではありません")
+            elif (.feeds.existing | type) != "object" then error("feeds.existing が存在しないかobjectではありません")
+            elif (.feeds.existing.enabled | type) != "boolean" then error("feeds.existing.enabled が存在しないかbooleanではありません")
+            else .feeds.existing.enabled
+            end
+          ' rss-config.json)"; then
+            echo "::error::rss-config.json の existing 設定が不正です。"
+            exit 1
+          fi
+          echo "enabled=$enabled" >> "$GITHUB_OUTPUT"
+          if [[ "$enabled" == "false" ]]; then
+            echo "::notice::feeds.existing.enabled=false のため既存作品のRSS更新をスキップします。既存の feed.xml は保持されます。"
+          fi
+
       - name: Set up Python
+        if: steps.config.outputs.enabled == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
       - name: Install dependencies
+        if: steps.config.outputs.enabled == 'true'
         run: |
           pip install requests
 
       - name: Run script
+        if: steps.config.outputs.enabled == 'true'
         run: |
           python kakuyomu_rss.py "$(cat myid.md)" -o feed.xml
 
       - name: Commit and Push
+        if: steps.config.outputs.enabled == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
